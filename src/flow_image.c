@@ -47,7 +47,47 @@ void draw_line(image im, float x, float y, float dx, float dy)
 image make_integral_image(image im)
 {
     image integ = make_image(im.w, im.h, im.c);
-    // TODO: fill in the integral image
+    float im_pix; //original image pixel @i(x,y) 
+    float integ_y1 = 0.0; //integ imag @I(x,y-1)
+    float integ_x1 = 0.0; //integ imag @I(x-1,y)
+    float integ_x1_y1 = 0.0; //integ imag @I(x-1,y-1)
+    float new_pix = 0.0; //new integ pixel @I(x,y)
+
+    for(int c = 0; c < im.c; ++c)
+    {
+        for(int x = 0; x < im.w; ++x)
+        {   
+          
+            for(int y = 0; y < im.h; ++y)
+            {
+                im_pix = get_pixel(im,x,y,c);
+                integ_y1 = 0.0;
+                integ_x1 = 0.0;
+                integ_x1_y1 = 0.0;
+
+                if(y>0)
+                {
+                    integ_y1 = get_pixel(integ,x,y-1,c); 
+                }
+                
+                
+                if(x>0)
+                {
+                    integ_x1 = get_pixel(integ,x-1,y,c); 
+                }
+                
+                if(y>0 && x >0)
+                {
+                    integ_x1_y1 = get_pixel(integ,x-1,y-1,c); 
+                }
+                
+
+                new_pix = im_pix + integ_y1 + integ_x1 - integ_x1_y1; 
+                set_pixel(integ,x,y,c,new_pix); 
+            }
+
+        }
+    }
     return integ;
 }
 
@@ -55,15 +95,71 @@ image make_integral_image(image im)
 // image im: image to smooth
 // int s: window size for box filter
 // returns: smoothed image
+
 image box_filter_image(image im, int s)
 {
     int i,j,k;
     image integ = make_integral_image(im);
     image S = make_image(im.w, im.h, im.c);
     // TODO: fill in S using the integral image.
+    int t; //top pixel 
+    int r; //right pixel 
+    int l; //left pixel 
+    int b; //bottom pixel 
+    int filter_w = s/2; 
+    float b_l; //bottom left
+    float b_r; //bottom right
+    float t_l; //top left
+    float t_r; //top right
+
+
+    for(int c = 0; c < integ.c; ++c)
+    {
+        for(int x = 0; x < integ.w; ++x)
+        {   
+            l = x - filter_w -1; 
+            r = x + filter_w; 
+            for(int y = 0; y < integ.h; ++y)
+            {   
+                t = y - filter_w -1; 
+                b = y + filter_w; 
+
+                if(t < 0 && l >= 0)
+                {
+                    t_r = 0.; 
+                    t_l = 0.; 
+                    b_l = get_pixel(integ,l,b,c); 
+                }
+                else if (l < 0 && t >= 0)
+                {   
+                    b_l = 0.; 
+                    t_l = 0.; 
+                    t_r = get_pixel(integ,r,t,c); 
+
+                }
+                else if(l < 0 && t < 0)
+                {
+                    t_l = 0.; 
+                    t_r = 0.;
+                    b_l = 0.; 
+                }
+                else 
+                {
+                    t_l = get_pixel(integ,l,t,c); 
+                    t_r = get_pixel(integ,r,t,c); 
+                    b_l = get_pixel(integ,l,b,c);
+                }
+                
+                b_r = get_pixel(integ,r,b,c); 
+                float sum = b_r + t_l - b_l - t_r; 
+                set_pixel(S,x,y,c,sum); 
+            }
+
+        }
+    }
+    free_image(integ); 
     return S;
 }
-
 // Calculate the time-structure matrix of an image pair.
 // image im: the input image.
 // image prev: the previous image in sequence.
@@ -74,6 +170,7 @@ image time_structure_matrix(image im, image prev, int s)
 {
     int i;
     int converted = 0;
+    image S = make_image(im.w,im.h,im.c); 
     if(im.c == 3){
         converted = 1;
         im = rgb_to_grayscale(im);
